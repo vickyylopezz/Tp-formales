@@ -526,7 +526,7 @@
 (defn chequear_cadena [l operacion funcion & args]
   (cond
     (empty? l) (apply funcion args)
-    (not (number? (second (first l)))) (str ";ERROR: " operacion ": Wrong type in arg" (inc (first (first l))) " " (second (first l)))
+    (not (number? (second (first l)))) (symbol (str ";ERROR: " operacion ": Wrong type in arg" (inc (first (first l))) " " (second (first l))))
     :else (apply chequear_cadena (rest l) operacion funcion args)))
 
 ; user=> (leer-entrada)
@@ -689,11 +689,7 @@
 (defn fnc-sumar
   "Suma los elementos de una lista."
   [lista]
-  ;; (cond
-  ;;   (empty? lista) 0
-  ;;   :else (sumar (map-indexed list lista) 0)))
   (chequear_cadena (map-indexed list lista) "+" sumar lista))
-
 
 ; user=> (fnc-restar ())
 ; (;ERROR: -: Wrong number of args given)
@@ -746,10 +742,10 @@
 ; (;ERROR: <: Wrong type in arg2 A)
 
     (defn menor [l es_menor]
-      (cond
-        (empty? l) "#t"
-        (= 1 (count l)) "#t"
+      (cond 
         (not es_menor) "#f"
+        (empty? l) "#t"
+        (= 1 (count l)) "#t" 
         :else (menor (rest l) (< (first l) (second l)))))
 
     (defn fnc-menor
@@ -777,9 +773,17 @@
 ; (;ERROR: >: Wrong type in arg2 A)
 ; user=> (fnc-mayor '(3 2 A 1))
 ; (;ERROR: >: Wrong type in arg2 A)
+    (defn mayor [l es_mayor]
+      (cond
+        (not es_mayor) (symbol "#f")
+        (empty? l) (symbol "#t")
+        (= 1 (count l)) (symbol "#t" )
+        :else (mayor (rest l) (> (first l) (second l)))))
+    
     (defn fnc-mayor
       "Devuelve #t si los numeros de una lista estan en orden estrictamente decreciente; si no, #f."
-      [])
+      [lista] 
+      (chequear_cadena (map-indexed list lista) ">" mayor lista true))
 
 ; user=> (fnc-mayor-o-igual ())
 ; #t
