@@ -629,9 +629,18 @@
 ; (;ERROR: append: Wrong type in arg 3)
 ; user=> (fnc-append '( (1 2) A (4 5) (6 7)))
 ; (;ERROR: append: Wrong type in arg A)
+(defn mostrar_error [l]
+  (cond
+    (not (list? (first l))) (symbol (str ";ERROR: append: Wrong type in arg " (first l)))
+    :else (mostrar_error (rest l)))
+  )
 (defn fnc-append
   "Devuelve el resultado de fusionar listas."
-  [])
+  [lista]
+  (cond
+    (every? list? lista) (reduce concat lista)
+    :else (mostrar_error lista))
+  )
 
 ; user=> (fnc-equal? ())
 ; #t
@@ -649,9 +658,25 @@
 ; #t
 ; user=> (fnc-equal? '(1 1 2 1))
 ; #f
+(defn convertir_caracter [c]
+  (cond
+    (symbol? c) (lower-case c)
+    :else c))
+
+(defn equal [l es_igual]
+  (cond
+    (not es_igual) (symbol "#f")
+    (empty? l) (symbol "#t") 
+    (= 1 (count l)) (symbol "#t")
+    :else (equal (rest l) (= (convertir_caracter (first l)) (convertir_caracter (second l))))
+    )
+  )
+
 (defn fnc-equal?
   "Compara elementos. Si son iguales, devuelve #t. Si no, #f."
-  [])
+  [lista]
+  (equal lista true)
+  )
 
 ; user=> (fnc-read ())
 ; (hola
@@ -743,9 +768,9 @@
 
     (defn menor [l es_menor]
       (cond 
-        (not es_menor) "#f"
-        (empty? l) "#t"
-        (= 1 (count l)) "#t" 
+        (not es_menor) (symbol "#f")
+        (empty? l) (symbol "#t")
+        (= 1 (count l)) (symbol "#t") 
         :else (menor (rest l) (< (first l) (second l)))))
 
     (defn fnc-menor
@@ -805,9 +830,17 @@
 ; (;ERROR: >=: Wrong type in arg2 A)
 ; user=> (fnc-mayor-o-igual '(3 2 A 1))
 ; (;ERROR: >=: Wrong type in arg2 A)
+    (defn mayor-o-igual [l es_mayor_o_igual]
+      (cond
+        (not es_mayor_o_igual) (symbol "#f")
+        (empty? l) (symbol "#t")
+        (= 1 (count l)) (symbol "#t")
+        :else (mayor-o-igual (rest l) (>= (first l) (second l)))))
+    
     (defn fnc-mayor-o-igual
       "Devuelve #t si los numeros de una lista estan en orden decreciente; si no, #f."
-      [])
+      [lista]
+      (chequear_cadena (map-indexed list lista) ">=" mayor-o-igual lista true))
 
 ; user=> (evaluar-escalar 32 '(x 6 y 11 z "hola"))
 ; (32 (x 6 y 11 z "hola"))

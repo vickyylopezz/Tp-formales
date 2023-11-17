@@ -48,14 +48,14 @@
 
 (deftest fnc-menor-test
   (testing "Test de orden estrictamente creciente de elementos"
-    (is (= "#t" (fnc-menor ())))
-    (is (= "#t" (fnc-menor '(1))))
-    (is (= "#t" (fnc-menor '(1 2))))
-    (is (= "#t" (fnc-menor '(1 2 3))))
-    (is (= "#t" (fnc-menor '(1 2 3 4))))
-    (is (= "#f" (fnc-menor '(1 2 2 4))))
-    (is (= "#f" (fnc-menor '(1 2 1 4)))) 
-    (is (= "#f" (fnc-menor '(4 1 3 2))))
+    (is (= (symbol "#t") (fnc-menor ())))
+    (is (= (symbol "#t") (fnc-menor '(1))))
+    (is (= (symbol "#t") (fnc-menor '(1 2))))
+    (is (= (symbol "#t") (fnc-menor '(1 2 3))))
+    (is (= (symbol "#t") (fnc-menor '(1 2 3 4))))
+    (is (= (symbol "#f") (fnc-menor '(1 2 2 4))))
+    (is (= (symbol "#f") (fnc-menor '(1 2 1 4)))) 
+    (is (= (symbol "#f") (fnc-menor '(4 1 3 2))))
     (is (= (symbol ";ERROR: <: Wrong type in arg1 A") (fnc-menor '(A 1 2 4))))
     (is (= (symbol ";ERROR: <: Wrong type in arg2 A") (fnc-menor '(1 A 1 4))))
     (is (= (symbol ";ERROR: <: Wrong type in arg3 A" )(fnc-menor '(1 2 A 4))))
@@ -75,3 +75,35 @@
     (is (= (symbol ";ERROR: >: Wrong type in arg3 A") (fnc-mayor '(3 2 A 1))))
     ))
 
+(deftest fnc-mayor-o-igual-test
+  (testing "Test de orden estrictamente decreciente de elementos"
+    (is (= (symbol "#t") (fnc-mayor-o-igual ())))
+    (is (= (symbol "#t") (fnc-mayor-o-igual '(1))))
+    (is (= (symbol "#t") (fnc-mayor-o-igual '(2 1))))
+    (is (= (symbol "#t") (fnc-mayor-o-igual '(3 2 1))))
+    (is (= (symbol "#t") (fnc-mayor-o-igual '(4 3 2 1))))
+    (is (= (symbol "#t") (fnc-mayor-o-igual '(4 2 2 1))))
+    (is (= (symbol "#f") (fnc-mayor-o-igual '(4 2 1 4))))
+    (is (= (symbol ";ERROR: >=: Wrong type in arg1 A") (fnc-mayor-o-igual '(A 3 2 1))))
+    (is (= (symbol ";ERROR: >=: Wrong type in arg2 A") (fnc-mayor-o-igual '(3 A 2 1))))
+    (is (= (symbol ";ERROR: >=: Wrong type in arg3 A") (fnc-mayor-o-igual '(3 2 A 1))))))
+
+(deftest fnc-equal?-test
+  (testing "Test de orden estrictamente decreciente de elementos"
+    (is (= (symbol "#t") (fnc-equal? ())))
+    (is (= (symbol "#t") (fnc-equal? '(A))))
+    (is (= (symbol "#t") (fnc-equal? '(A a))))
+    (is (= (symbol "#t") (fnc-equal? '(A a A))))
+    (is (= (symbol "#t") (fnc-equal? '(A a A a))))
+    (is (= (symbol "#f") (fnc-equal? '(A a A B))))
+    (is (= (symbol "#t") (fnc-equal? '(1 1 1 1))))
+    (is (= (symbol "#f") (fnc-equal? '(1 1 2 1))))
+    ))
+
+(deftest fnc-append-test
+  (testing "Test de fusionar listas"
+    (is (= '(1 2 3 4 5 6 7) (fnc-append '((1 2) (3) (4 5) (6 7))))) 
+    (is (= '(1 2 4 (3) 4 5 6 7) (fnc-append '((1 2) (4 (3)) (4 5) (6 7)))))
+    (is (= (symbol ";ERROR: append: Wrong type in arg 3") (fnc-append '((1 2) 3 (4 5) (6 7)))))
+    (is (= (symbol ";ERROR: append: Wrong type in arg A") (fnc-append '((1 2) A (4 5) (6 7)))))
+    ))
