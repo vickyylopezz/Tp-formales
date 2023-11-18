@@ -526,8 +526,12 @@
 (defn chequear_cadena [l operacion funcion & args]
   (cond
     (empty? l) (apply funcion args)
-    (not (number? (second (first l)))) (symbol (str ";ERROR: " operacion ": Wrong type in arg" (inc (first (first l))) " " (second (first l))))
+    (not (number? (second (first l)))) (list (symbol (str ";ERROR: " operacion ": Wrong type in arg" (inc (first (first l))) " " (second (first l)))))
     :else (apply chequear_cadena (rest l) operacion funcion args)))
+
+
+(defn as_map [ambiente]
+  (into {} (map vec (partition 2 ambiente))))
 
 ; user=> (leer-entrada)
 ; (hola
@@ -578,19 +582,42 @@
 ; (a 1 b 2 c 3)
 ; user=> (actualizar-amb () 'b 7)
 ; (b 7)
+(defn transponer [l1]
+  (apply map list l1)
+  )
+
+(defn as_list [sm]
+  (reduce concat (transponer (list (keys sm) (vals sm))))
+  )
+
+(defn actualizar [ambiente clave valor]
+  (as_list (assoc (as_map ambiente) clave valor)))
+  
+
 (defn actualizar-amb
   "Devuelve un ambiente actualizado con una clave (nombre de la variable o funcion) y su valor. 
   Si el valor es un error, el ambiente no se modifica. De lo contrario, se le carga o reemplaza la nueva informacion."
-  [])
+  [ambiente clave valor]
+  (cond
+    (and (list? valor) (= (symbol ";ERROR:") (first valor))) ambiente
+    :else (actualizar ambiente clave valor) 
+    )
+  )
 
 ; user=> (buscar 'c '(a 1 b 2 c 3 d 4 e 5))
 ; 3
 ; user=> (buscar 'f '(a 1 b 2 c 3 d 4 e 5))
 ; (;ERROR: unbound variable: f)
+(defn buscar_clave [mapa clave]
+  (get mapa clave (list (symbol (str ";ERROR: unbound variable: " clave))))
+  )
+
 (defn buscar
   "Busca una clave en un ambiente (una lista con claves en las posiciones impares [1, 3, 5...] y valores en las pares [2, 4, 6...]
    y devuelve el valor asociado. Devuelve un error :unbound-variable si no la encuentra."
-  [])
+  [clave ambiente]
+  (buscar_clave (as_map ambiente) clave)
+  )
 
 ; user=> (error? (list (symbol ";ERROR:") 'mal 'hecho))
 ; true
@@ -613,15 +640,20 @@
 ; ""
 (defn proteger-bool-en-str
   "Cambia, en una cadena, #t por %t y #f por %f, para poder aplicarle read-string."
-  [])
+  [cadena]
+  (clojure.string/replace cadena #"#[TtFf]" #(str "%" (nth (.split %1 "#") 1)))
+  )
 
 ; user=> (restaurar-bool (read-string (proteger-bool-en-str "(and (or #F #f #t #T) #T)")))
 ; (and (or #F #f #t #T) #T)
 ; user=> (restaurar-bool (read-string "(and (or %F %f %t %T) %T)") )
 ; (and (or #F #f #t #T) #T)
+
 (defn restaurar-bool
   "Cambia, en un codigo leido con read-string, %t por #t y %f por #f."
-  [])
+  [cadena]
+  (list (symbol (clojure.string/replace cadena #"%[TtFf]" #(str "#" (nth (.split %1 "%") 1)))))
+  )
 
 ; user=> (fnc-append '( (1 2) (3) (4 5) (6 7)))
 ; (1 2 3 4 5 6 7)
@@ -631,7 +663,7 @@
 ; (;ERROR: append: Wrong type in arg A)
 (defn mostrar_error [l]
   (cond
-    (not (list? (first l))) (symbol (str ";ERROR: append: Wrong type in arg " (first l)))
+    (not (list? (first l))) (list (symbol (str ";ERROR: append: Wrong type in arg " (first l))))
     :else (mostrar_error (rest l)))
   )
 (defn fnc-append
@@ -854,7 +886,11 @@
 ; ((;ERROR: unbound variable: n) (x 6 y 11 z "hola"))
     (defn evaluar-escalar
       "Evalua una expresion escalar. Devuelve una lista con el resultado y un ambiente."
-      [])
+      [clave ambiente]
+      (cond
+        (symbol? clave) (list (buscar clave ambiente) ambiente)
+        :else (list clave ambiente)) 
+      )
 
 ; user=> (evaluar-define '(define x 2) '(x 1))
 ; (#<void> (x 2))
