@@ -117,14 +117,22 @@
 
 (defn evaluar
   "Evalua una expresion `expre` en un ambiente. Devuelve un lista con un valor resultante y un ambiente."
-  [expre amb]
+  [expre amb] 
   (if (and (seq? expre) (or (empty? expre) (error? expre))) ; si `expre` es () o error, devolverla intacta
     (list expre amb)                                      ; de lo contrario, evaluarla
     (cond
       (not (seq? expre))             (evaluar-escalar expre amb)
 
       (= (first expre) 'define) (evaluar-define expre amb)
-
+      (= (first expre) 'if) (evaluar-if expre amb) 
+      ;; (= (first expre) 'or) (evaluar-or expre amb)
+      (= (first expre) 'cond) (evaluar-cond expre amb) 
+      (= (first expre) 'eval) (evaluar-eval expre amb) 
+      (= (first expre) 'exit) (evaluar-exit expre amb) 
+      (= (first expre) 'set!) (evaluar-set! expre amb) 
+      (= (first expre) 'quote) (evaluar-quote expre amb) 
+      (= (first expre) 'enter!) (evaluar-enter! expre amb) 
+      (= (first expre) 'lambda) (evaluar-lambda expre amb) 
          ;
          ;
          ;
@@ -137,7 +145,6 @@
       :else (let [res-eval-1 (evaluar (first expre) amb),
                   res-eval-2 (reduce (fn [x y] (let [res-eval-3 (evaluar y (first x))] (cons (second res-eval-3) (concat (next x) (list (first res-eval-3)))))) (cons (list (second res-eval-1)) (next expre)))]
               (aplicar (first res-eval-1) (next res-eval-2) (first res-eval-2))))))
-
 
 (defn aplicar
   "Aplica la funcion `fnc` a la lista de argumentos `lae` evaluados en el ambiente dado."
@@ -188,6 +195,25 @@
   [fnc lae amb]
   (cond
     (= fnc '<)            (fnc-menor lae)
+    (= fnc '>)            (fnc-mayor lae)
+    (= fnc '>=)           (fnc-mayor-o-igual lae)
+    (= fnc '+)            (fnc-sumar lae)
+    (= fnc '-)            (fnc-restar lae)
+    (= fnc 'equal?)       (fnc-equal? lae)
+    (= fnc 'append)       (fnc-append lae)
+    (= fnc 'null?)        (fnc-null? lae)
+    (= fnc 'list?)        (fnc-list? lae)
+    (= fnc 'list)         (fnc-list lae)
+    (= fnc 'car)          (fnc-car lae)
+    (= fnc 'cdr)          (fnc-cdr lae)
+    (= fnc 'cons)         (fnc-cons lae)
+    (= fnc 'display)      (fnc-display lae)
+    (= fnc 'env)          (fnc-env lae amb)
+    (= fnc 'length)       (fnc-length lae)
+    (= fnc 'newline)      (fnc-newline lae)
+    (= fnc 'not)          (fnc-not lae)
+    (= fnc 'read)         (fnc-read)
+    (= fnc 'reverse)      (fnc-reverse lae)
 
     ;
     ; COMPLETAR
@@ -195,7 +221,6 @@
 
 
     :else (generar-mensaje-error :wrong-type-apply fnc)))
-
 
 (defn fnc-car
   "Devuelve el primer elemento de una lista."
@@ -526,7 +551,9 @@
 (defn chequear_cadena [l operacion funcion & args]
   (cond
     (empty? l) (apply funcion args)
-    (not (number? (second (first l)))) (list (symbol (str ";ERROR: " operacion ": Wrong type in arg" (inc (first (first l))) " " (second (first l)))))
+    (not (number? (second (first l)))) (cond
+                                         (= 1 (inc (first (first l)))) (generar-mensaje-error :wrong-type-arg1 operacion (second (first l)))
+                                         :else (generar-mensaje-error :wrong-type-arg2 operacion (second (first l))))
     :else (apply chequear_cadena (rest l) operacion funcion args)))
 
 
@@ -599,7 +626,7 @@
   Si el valor es un error, el ambiente no se modifica. De lo contrario, se le carga o reemplaza la nueva informacion."
   [ambiente clave valor]
   (cond
-    (and (list? valor) (= (symbol ";ERROR:") (first valor))) ambiente
+    (error? valor) ambiente
     :else (actualizar ambiente clave valor) 
     )
   )
@@ -609,7 +636,7 @@
 ; user=> (buscar 'f '(a 1 b 2 c 3 d 4 e 5))
 ; (;ERROR: unbound variable: f)
 (defn buscar_clave [mapa clave]
-  (get mapa clave (list (symbol (str ";ERROR: unbound variable: " clave))))
+  (get mapa clave (generar-mensaje-error :unbound-variable clave))
   )
 
 (defn buscar
@@ -628,10 +655,8 @@
 (defn error?
   "Devuelve true o false, segun sea o no el arg. una lista con `;ERROR:` o `;WARNING:` como primer elemento."
   [lista]
-  (cond
-    (or (= (symbol ";ERROR:") (first lista)) (= (symbol ";WARNING:") (first lista))) false
-    :else true))
-
+  (and (seq? lista) (or (= (symbol ";ERROR:") (first lista)) (= (symbol ";WARNING:") (first lista))))
+  )
 ; user=> (proteger-bool-en-str "(or #f #t)")
 ; "(or %f %t)"
 ; user=> (proteger-bool-en-str "(and (or #f #t) #t)")
@@ -663,7 +688,7 @@
 ; (;ERROR: append: Wrong type in arg A)
 (defn mostrar_error [l]
   (cond
-    (not (list? (first l))) (list (symbol (str ";ERROR: append: Wrong type in arg " (first l))))
+    (not (list? (first l))) (generar-mensaje-error :wrong-type-arg 'append (first l))
     :else (mostrar_error (rest l)))
   )
 (defn fnc-append
@@ -908,9 +933,22 @@
 ; ((;ERROR: define: bad variable (define () 2)) (x 1))
 ; user=> (evaluar-define '(define 2 x) '(x 1))
 ; ((;ERROR: define: bad variable (define 2 x)) (x 1))
+    (defn define [expre ambiente]
+      (cond
+        (symbol? (first expre)) (list (symbol "#<void>") (actualizar-amb ambiente (first expre) (second expre)))
+        :else (list (symbol "#<void>") (actualizar-amb ambiente (ffirst expre) (list 'lambda (rest (first expre)) (second expre))))
+        )
+      )
+    
     (defn evaluar-define
       "Evalua una expresion `define`. Devuelve una lista con el resultado y un ambiente actualizado con la definicion."
-      [])
+      [expre ambiente] 
+      (cond
+        (not= 3 (count expre)) (list (generar-mensaje-error :missing-or-extra 'define expre) ambiente) 
+        (number? (second expre)) (list (generar-mensaje-error :bad-variable 'define expre) ambiente) 
+        (and (list? (second expre)) (empty? (second expre))) (list (generar-mensaje-error :bad-variable 'define expre) ambiente) 
+        :else (define (rest expre) ambiente)
+        ))
 
 ; user=> (evaluar-if '(if 1 2) '(n 7))
 ; (2 (n 7))
@@ -928,9 +966,32 @@
 ; ((;ERROR: if: missing or extra expression (if)) (n 7))
 ; user=> (evaluar-if '(if 1) '(n 7))
 ; ((;ERROR: if: missing or extra expression (if 1)) (n 7))
+    (defn evaluar_false [expre ambiente] 
+      (cond
+        (= 1 (count expre)) (list (symbol "#<void>") ambiente)
+        :else (evaluar (second expre) ambiente)
+        )
+      )
+    (defn evaluar_true [expre ambiente]
+      (cond
+        (symbol? (first expre)) (list (buscar (first expre) ambiente) ambiente)
+        :else (evaluar (first expre) ambiente)
+        )
+      )
+    (defn aux-if [expre ambiente]
+      (cond
+        (= (first expre) (symbol "#f")) (evaluar_false (rest expre) ambiente)
+        :else (evaluar_true (rest expre) ambiente)
+        )
+      )
     (defn evaluar-if
       "Evalua una expresion `if`. Devuelve una lista con el resultado y un ambiente eventualmente modificado."
-      [])
+      [expre ambiente]
+      (cond
+        (or (> (count expre) 4) (< (count expre) 3)) (list (generar-mensaje-error :missing-or-extra 'if expre) ambiente) 
+        :else (aux-if (rest expre) ambiente)
+        )
+      )
 
 ; user=> (evaluar-or (list 'or) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
 ; (#f (#f #f #t #t))
@@ -956,9 +1017,20 @@
 ; ((;ERROR: set!: missing or extra expression (set! x 1 2)) (x 0))
 ; user=> (evaluar-set! '(set! 1 2) '(x 0))
 ; ((;ERROR: set!: bad variable 1) (x 0))
+    (defn aux_set! [expre ambiente]
+      (let [buscado (buscar (first expre) ambiente)] 
+      (cond
+        (error? buscado) (list buscado ambiente)
+        :else (list (symbol "#<void>") (actualizar-amb ambiente (first expre) (second expre)))
+        ))
+      )
     (defn evaluar-set!
       "Evalua una expresion `set!`. Devuelve una lista con el resultado y un ambiente actualizado con la redefinicion."
-      [])
+      [expre ambiente]
+      (cond
+        (not= (count expre) 3) (list (generar-mensaje-error :missing-or-extra 'set! expre) ambiente)
+        (not (symbol? (second expre))) (list (generar-mensaje-error :bad-variable 'set! (second expre)) ambiente)
+        :else (aux_set! (rest expre) ambiente)))
 
 ; Al terminar de cargar el archivo en el REPL de Clojure, se debe devolver true.
     true
