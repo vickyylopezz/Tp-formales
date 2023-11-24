@@ -122,8 +122,8 @@
 
 (deftest fnc-restaurar-bool-test
   (testing "Test de reemplazar %f y %t por #f y #t en una cadena"
-    (is (= (list (symbol "(and (or #F #f #t #T) #T)")) (restaurar-bool (read-string (proteger-bool-en-str "(and (or #F #f #t #T) #T)")))))
-    (is (= (list (symbol "(and (or #F #f #t #T) #T)")) (restaurar-bool (read-string "(and (or %F %f %t %T) %T)"))))
+    (is (= (list (symbol "and") (list (symbol "or") (symbol "#F") (symbol "#f") (symbol "#t") (symbol "#T")) (symbol "#T")) (restaurar-bool (read-string (proteger-bool-en-str "(and (or #F #f #t #T) #T)"))))) 
+    (is (= (list (symbol "and") (list (symbol "or") (symbol "#F") (symbol "#f") (symbol "#t") (symbol "#T")) (symbol "#T")) (restaurar-bool (read-string "(and (or %F %f %t %T) %T)"))))
    ))
 
 (deftest fnc-actualizar-amb-test
@@ -183,3 +183,21 @@
     (is (= (list (generar-mensaje-error :missing-or-extra 'set! '(set! x 1 2)) '(x 0)) (evaluar-set! '(set! x 1 2) '(x 0)))) 
     (is (= (list (generar-mensaje-error :bad-variable 'set! 1) '(x 0)) (evaluar-set! '(set! 1 2) '(x 0)))) 
     ))
+
+(deftest fnc-evaluar-or-test
+  (testing "Test de evaluar una expresion or" 
+    (is (= (list (symbol "#f") (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))) (evaluar-or (list 'or) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))))) 
+    (is (= (list (symbol "#t") (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))) (evaluar-or (list 'or (symbol "#t")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))))     
+    (is (= (list 7 (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))) (evaluar-or (list 'or 7) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))))     
+    (is (= (list 5 (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))) (evaluar-or (list 'or (symbol "#f") 5) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))))     
+    (is (= (list (symbol "#f") (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))) (evaluar-or (list 'or (symbol "#f")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))))) 
+    ))
+
+(deftest fnc-leer-entrada-test
+  (testing "Lectura de entrada"
+    (is (= "Hola" (with-in-str "Hola" (leer-entrada)))) 
+    (is (= "123" (with-in-str "123" (leer-entrada))))
+    (is (= "(Hola mundo)" (with-in-str "(Hola\nmundo)" (leer-entrada)))) 
+    (is (= "( muchos( parentesis( en lineas) ))" (with-in-str "(\nmuchos(\nparentesis(\nen lineas)\n))" (leer-entrada))))
+    )
+  )

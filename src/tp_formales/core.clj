@@ -125,7 +125,7 @@
 
       (= (first expre) 'define) (evaluar-define expre amb)
       (= (first expre) 'if) (evaluar-if expre amb) 
-      ;; (= (first expre) 'or) (evaluar-or expre amb)
+      (= (first expre) 'or) (evaluar-or expre amb)
       (= (first expre) 'cond) (evaluar-cond expre amb) 
       (= (first expre) 'eval) (evaluar-eval expre amb) 
       (= (first expre) 'exit) (evaluar-exit expre amb) 
@@ -212,7 +212,7 @@
     (= fnc 'length)       (fnc-length lae)
     (= fnc 'newline)      (fnc-newline lae)
     (= fnc 'not)          (fnc-not lae)
-    (= fnc 'read)         (fnc-read)
+    (= fnc 'read)         (fnc-read lae)
     (= fnc 'reverse)      (fnc-reverse lae)
 
     ;
@@ -575,7 +575,27 @@
   "Lee una cadena desde la terminal/consola. Si contiene parentesis de menos al presionar Enter/Intro,
   se considera que la cadena ingresada es una subcadena y el ingreso continua. De lo contrario, se la
   devuelve completa (si corresponde, advirtiendo previamente que hay parentesis de mas)."
-  [])
+  ([] 
+  (let [line (read-line) parentesis (verificar-parentesis line)]
+    (cond
+      (= 0 parentesis) line
+      (> parentesis 0) (leer-entrada line)
+      :else (do (println (generar-mensaje-error :warning-paren)) line)
+      )
+    
+    ))
+  ([line_anterior]
+  (let [line (str line_anterior " " (read-line)) parentesis (verificar-parentesis line)]
+    (cond
+      (= 0 parentesis) line
+      (> parentesis 0) (leer-entrada line)
+      :else (do (println (generar-mensaje-error :warning-paren)) line)
+      )
+    
+    ))
+
+  )
+
 
 ; user=> (verificar-parentesis "(hola 'mundo")
 ; 1
@@ -598,7 +618,7 @@
 (defn verificar-parentesis
   "Cuenta los parentesis en una cadena, sumando 1 si `(`, restando 1 si `)`. Si el contador se hace negativo, para y retorna -1."
   [cadena]
-  (let [caracteres (partition 1 cadena)]
+  (let [caracteres (partition 1 (str cadena))]
     (es_parentesis caracteres 0)))
 
 ; user=> (actualizar-amb '(a 1 b 2 c 3) 'd 4)
@@ -674,10 +694,19 @@
 ; user=> (restaurar-bool (read-string "(and (or %F %f %t %T) %T)") )
 ; (and (or #F #f #t #T) #T)
 
+(defn restaurar [elemento]
+  (cond
+    (list? elemento) (map restaurar elemento)
+    (= elemento (symbol "%t")) (symbol "#t")
+    (= elemento (symbol "%T")) (symbol "#T")
+    (= elemento (symbol "%f")) (symbol "#f")
+    (= elemento (symbol "%F")) (symbol "#F")
+    :else elemento
+    ))
 (defn restaurar-bool
   "Cambia, en un codigo leido con read-string, %t por #t y %f por #f."
   [cadena]
-  (list (symbol (clojure.string/replace cadena #"%[TtFf]" #(str "#" (nth (.split %1 "%") 1)))))
+  (map restaurar cadena)
   )
 
 ; user=> (fnc-append '( (1 2) (3) (4 5) (6 7)))
@@ -747,7 +776,13 @@
 ; (;ERROR: Wrong number of args given #<primitive-procedure read>)
 (defn fnc-read
   "Devuelve la lectura de un elemento de Racket desde la terminal/consola."
-  [])
+  [args]
+  (cond
+    (empty? args) (leer-entrada)
+    (= 1 (count args)) (generar-mensaje-error :io-ports-not-implemented 'read)
+    :else (generar-mensaje-error :wrong-number-args-prim-proc 'read)
+    )
+  )
 
 ; user=> (fnc-sumar ())
 ; 0
@@ -1003,9 +1038,26 @@
 ; (5 (#f #f #t #t))
 ; user=> (evaluar-or (list 'or (symbol "#f")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
 ; (#f (#f #f #t #t))
+    (defn aux-or [expre1 expre2 ambiente]
+      (let [evaluar1 (evaluar expre1 ambiente),
+            evaluar2 (evaluar expre2 ambiente)]
+        (cond
+          (= (symbol "#f") (first evaluar1)) evaluar2
+          (= (symbol "#f") (first evaluar2)) evaluar1
+          :else (or (first evaluar1) (first evaluar2))
+          )
+        )
+      )
     (defn evaluar-or
       "Evalua una expresion `or`.  Devuelve una lista con el resultado y un ambiente."
-      [])
+      [lista ambiente]
+      (cond
+        (= 1 (count lista)) (list (symbol "#f") ambiente)
+        (= 2 (count lista)) (evaluar (second lista) ambiente)
+        ;; :else (list (aux-or (rest lista) (second lista)) ambiente)
+        :else (aux-or (second lista) (nth lista 2) ambiente) 
+        )
+      )
 
 ; user=> (evaluar-set! '(set! x 1) '(x 0))
 ; (#<void> (x 1))
