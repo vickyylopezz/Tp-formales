@@ -706,7 +706,9 @@
 (defn restaurar-bool
   "Cambia, en un codigo leido con read-string, %t por #t y %f por #f."
   [cadena]
-  (map restaurar cadena)
+  (cond
+   (seq? cadena) (map restaurar cadena)
+    :else cadena)
   )
 
 ; user=> (fnc-append '( (1 2) (3) (4 5) (6 7)))
@@ -969,9 +971,14 @@
 ; user=> (evaluar-define '(define 2 x) '(x 1))
 ; ((;ERROR: define: bad variable (define 2 x)) (x 1))
     (defn define [expre ambiente]
-      (cond
-        (symbol? (first expre)) (list (symbol "#<void>") (actualizar-amb ambiente (first expre) (second expre)))
-        :else (list (symbol "#<void>") (actualizar-amb ambiente (ffirst expre) (list 'lambda (rest (first expre)) (second expre))))
+      (let [evaluado (first (evaluar (second expre) ambiente)) clave (first expre)] 
+        (cond
+          (symbol? clave) (list (symbol "#<void>") (actualizar-amb ambiente clave evaluado))
+          :else (list (symbol "#<void>") (actualizar-amb ambiente (ffirst expre) (list 'lambda (rest clave) (second expre)))))
+      ;;  (cond
+      ;;   (symbol? (first expre)) (list (symbol "#<void>") (actualizar-amb ambiente (first expre) (first (evaluar (second expre) ambiente))))
+      ;;   :else (list (symbol "#<void>") (actualizar-amb ambiente (ffirst expre) (list 'lambda (rest (first expre)) (second expre))))
+      ;;   )
         )
       )
     
@@ -1049,8 +1056,8 @@
       "Evalua una expresion `or`.  Devuelve una lista con el resultado y un ambiente."
       [lista ambiente]
       (cond
-        (= 1 (count lista)) (list (symbol "#f") ambiente)
-        (= 2 (count lista)) (evaluar (second lista) ambiente)
+        (= 1 (count lista)) (list (symbol "#f") ambiente) ;viene solo (list 'or)
+        (= 2 (count lista)) (evaluar (second lista) ambiente) ;viene (list 'or) con algo mas
         :else (aux_or (rest lista) ambiente) 
         )
       )
@@ -1066,15 +1073,15 @@
 ; user=> (evaluar-set! '(set! 1 2) '(x 0))
 ; ((;ERROR: set!: bad variable 1) (x 0))
     (defn aux_set! [expre ambiente]
-      (let [buscado (buscar (first expre) ambiente)] 
-      (cond
+      (let [buscado (buscar (first expre) ambiente) evaluado (evaluar (second expre) ambiente)] 
+        (cond
         (error? buscado) (list buscado ambiente)
-        :else (list (symbol "#<void>") (actualizar-amb ambiente (first expre) (second expre)))
+        :else (list (symbol "#<void>") (actualizar-amb ambiente (first expre) (first evaluado)))
         ))
       )
     (defn evaluar-set!
       "Evalua una expresion `set!`. Devuelve una lista con el resultado y un ambiente actualizado con la redefinicion."
-      [expre ambiente]
+      [expre ambiente] 
       (cond
         (not= (count expre) 3) (list (generar-mensaje-error :missing-or-extra 'set! expre) ambiente)
         (not (symbol? (second expre))) (list (generar-mensaje-error :bad-variable 'set! (second expre)) ambiente)
