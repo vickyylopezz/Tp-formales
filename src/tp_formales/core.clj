@@ -1038,15 +1038,12 @@
 ; (5 (#f #f #t #t))
 ; user=> (evaluar-or (list 'or (symbol "#f")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
 ; (#f (#f #f #t #t))
-    (defn aux-or [expre1 expre2 ambiente]
-      (let [evaluar1 (evaluar expre1 ambiente),
-            evaluar2 (evaluar expre2 ambiente)]
+    (defn aux_or [lista ambiente] 
+      (let [evaluado (evaluar (first lista) ambiente)]
         (cond
-          (= (symbol "#f") (first evaluar1)) evaluar2
-          (= (symbol "#f") (first evaluar2)) evaluar1
-          :else (or (first evaluar1) (first evaluar2))
-          )
-        )
+          (not= (symbol "#f") (first evaluado)) evaluado
+          :else (aux_or (rest lista) ambiente)
+          ))
       )
     (defn evaluar-or
       "Evalua una expresion `or`.  Devuelve una lista con el resultado y un ambiente."
@@ -1054,8 +1051,7 @@
       (cond
         (= 1 (count lista)) (list (symbol "#f") ambiente)
         (= 2 (count lista)) (evaluar (second lista) ambiente)
-        ;; :else (list (aux-or (rest lista) (second lista)) ambiente)
-        :else (aux-or (second lista) (nth lista 2) ambiente) 
+        :else (aux_or (rest lista) ambiente) 
         )
       )
 
