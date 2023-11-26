@@ -2,6 +2,13 @@
   (:require [clojure.test :refer :all]
             [tp-formales.core :refer :all]))
 
+(deftest fnc-leer-entrada-test
+  (testing "Lectura de entrada"
+    (is (= (read-string "Hola") (with-in-str "Hola" (leer-entrada))))
+    (is (= (read-string "123") (with-in-str "123" (leer-entrada))))
+    (is (= (read-string "(Hola mundo)") (with-in-str "(Hola\nmundo)" (leer-entrada))))
+    (is (= (read-string "( muchos( parentesis( en lineas) ))") (with-in-str "(\nmuchos(\nparentesis(\nen lineas)\n))" (leer-entrada))))))
+
 (deftest verificar-parentesis-test
   (testing "Test de la cantidad de parentesis"
     (is (= 1 (verificar-parentesis "(hola 'mundo")))
@@ -20,6 +27,38 @@
     (is (error? (list (symbol ";WARNING:") 'mal 'hecho)))
     (is (not (error? (list '3 '(5) '6))))
   ))
+
+(deftest fnc-equal?-test
+  (testing "Test de orden estrictamente decreciente de elementos"
+    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? ())))
+    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? '(A))))
+    (is (= (symbol "#t") (fnc-equal? '(A A))))
+    (is (= (symbol "#f") (fnc-equal? '(A a))))
+    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? '(A A A))))
+    (is (= (symbol "#t") (fnc-equal? '((1 1) (1 1)))))
+    (is (= (symbol "#f") (fnc-equal? '((1 1) (2 1)))))))
+
+(deftest fnc-append-test
+  (testing "Test de fusionar listas"
+    (is (= '(1 2 3 4 5 6 7) (fnc-append '((1 2) (3) (4 5) (6 7)))))
+    (is (= '(1 2 4 (3) 4 (9) 5 6 7) (fnc-append '((1 2) (4 (3)) (4 (9) 5) (6 7)))))
+    (is (= (generar-mensaje-error :wrong-type-arg 'append 3) (fnc-append '((1 2) 3 (4 5) (6 7)))))
+    (is (= (generar-mensaje-error :wrong-type-arg 'append 'A) (fnc-append '((1 2) A (4 5) (6 7)))))))
+
+(deftest fnc-proteger-bool-en-str-test
+  (testing "Test de reemplazar #f y #t por %f y %t en una cadena"
+    (is (= "(or %f %t)" (proteger-bool-en-str "(or #f #t)")))
+    (is (= "(and (or %f %t) %t)" (proteger-bool-en-str "(and (or #f #t) #t)")))
+    (is (= "#" (proteger-bool-en-str "#")))
+    (is (= "(es %t)" (proteger-bool-en-str "(es #t)")))
+    (is (= "(es %f)" (proteger-bool-en-str "(es #f)")))
+    (is (= "" (proteger-bool-en-str "")))
+    (is (= "(and (or %F %t) %T)" (proteger-bool-en-str "(and (or #F #t) #T)")))))
+
+(deftest fnc-restaurar-bool-test
+  (testing "Test de reemplazar %f y %t por #f y #t en una cadena"
+    (is (= (list (symbol "and") (list (symbol "or") (symbol "#F") (symbol "#f") (symbol "#t") (symbol "#T")) (symbol "#T")) (restaurar-bool (read-string (proteger-bool-en-str "(and (or #F #f #t #T) #T)")))))
+    (is (= (list (symbol "and") (list (symbol "or") (symbol "#F") (symbol "#f") (symbol "#t") (symbol "#T")) (symbol "#T")) (restaurar-bool (read-string "(and (or %F %f %t %T) %T)"))))))
 
 (deftest fnc-sumar-test
   (testing "Test de suma de elementos"
@@ -88,43 +127,6 @@
     (is (= (generar-mensaje-error :wrong-type-arg2 '>= 'A) (fnc-mayor-o-igual '(3 A 2 1))))
     (is (= (generar-mensaje-error :wrong-type-arg2 '>= 'A) (fnc-mayor-o-igual '(3 2 A 1))))))
 
-(deftest fnc-equal?-test
-  (testing "Test de orden estrictamente decreciente de elementos"
-    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? ())))
-    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? '(A))))
-    (is (= (symbol "#t") (fnc-equal? '(A A))))
-    (is (= (symbol "#f") (fnc-equal? '(A a))))
-    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? '(A A A))))
-    (is (= (symbol "#t") (fnc-equal? '((1 1) (1 1)))))
-    (is (= (symbol "#f") (fnc-equal? '((1 1) (2 1)))))
-    ))
-
-(deftest fnc-append-test
-  (testing "Test de fusionar listas"
-    (is (= '(1 2 3 4 5 6 7) (fnc-append '((1 2) (3) (4 5) (6 7))))) 
-    (is (= '(1 2 4 (3) 4 5 6 7) (fnc-append '((1 2) (4 (3)) (4 5) (6 7)))))
-    (is (= (generar-mensaje-error :wrong-type-arg 'append 3) (fnc-append '((1 2) 3 (4 5) (6 7)))))
-    (is (= (generar-mensaje-error :wrong-type-arg 'append 'A) (fnc-append '((1 2) A (4 5) (6 7)))))
-    ))
-
-(deftest fnc-proteger-bool-en-str-test
-  (testing "Test de reemplazar #f y #t por %f y %t en una cadena"
-    (is (= "(or %f %t)" (proteger-bool-en-str "(or #f #t)"))) 
-    (is (= "(and (or %f %t) %t)" (proteger-bool-en-str "(and (or #f #t) #t)"))) 
-    (is (= "#" (proteger-bool-en-str "#")))
-    (is (= "(es %t)" (proteger-bool-en-str "(es #t)"))) 
-    (is (= "(es %f)" (proteger-bool-en-str "(es #f)")))
-    (is (= "" (proteger-bool-en-str ""))) 
-    (is (= "(and (or %F %t) %T)" (proteger-bool-en-str "(and (or #F #t) #T)"))) 
-    ) 
-  )
-
-(deftest fnc-restaurar-bool-test
-  (testing "Test de reemplazar %f y %t por #f y #t en una cadena"
-    (is (= (list (symbol "and") (list (symbol "or") (symbol "#F") (symbol "#f") (symbol "#t") (symbol "#T")) (symbol "#T")) (restaurar-bool (read-string (proteger-bool-en-str "(and (or #F #f #t #T) #T)"))))) 
-    (is (= (list (symbol "and") (list (symbol "or") (symbol "#F") (symbol "#f") (symbol "#t") (symbol "#T")) (symbol "#T")) (restaurar-bool (read-string "(and (or %F %f %t %T) %T)"))))
-   ))
-
 (deftest fnc-actualizar-amb-test
   (testing "Test de actualizar un ambiente dado con una clave (nombre de la variable o funcion) y su valor dados."
     (is (= '(a 1 b 2 c 3 d 4) (actualizar-amb '(a 1 b 2 c 3) 'd 4)))
@@ -174,15 +176,6 @@
     (is (= (list (generar-mensaje-error :missing-or-extra 'if '(if 1)) '(n 7)) (evaluar-if '(if 1) '(n 7))))
     ))
 
-(deftest fnc-evaluar-set-test
-  (testing "Test de evaluar una expresion set!" 
-    (is (= (list (symbol "#<void>") '(x 1)) (evaluar-set! '(set! x 1) '(x 0)))) 
-    (is (= (list (generar-mensaje-error :unbound-variable 'x) '()) (evaluar-set! '(set! x 1) '()))) 
-    (is (= (list (generar-mensaje-error :missing-or-extra 'set! '(set! x)) '(x 0)) (evaluar-set! '(set! x) '(x 0))))
-    (is (= (list (generar-mensaje-error :missing-or-extra 'set! '(set! x 1 2)) '(x 0)) (evaluar-set! '(set! x 1 2) '(x 0)))) 
-    (is (= (list (generar-mensaje-error :bad-variable 'set! 1) '(x 0)) (evaluar-set! '(set! 1 2) '(x 0)))) 
-    ))
-
 (deftest fnc-evaluar-or-test
   (testing "Test de evaluar una expresion or" 
     (is (= (list (symbol "#f") (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))) (evaluar-or (list 'or) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))))) 
@@ -192,11 +185,11 @@
     (is (= (list (symbol "#f") (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))) (evaluar-or (list 'or (symbol "#f")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t"))))) 
     ))
 
-(deftest fnc-leer-entrada-test
-  (testing "Lectura de entrada"
-    (is (= (read-string "Hola") (with-in-str "Hola" (leer-entrada)))) 
-    (is (= (read-string "123") (with-in-str "123" (leer-entrada))))
-    (is (= (read-string "(Hola mundo)") (with-in-str "(Hola\nmundo)" (leer-entrada)))) 
-    (is (= (read-string "( muchos( parentesis( en lineas) ))") (with-in-str "(\nmuchos(\nparentesis(\nen lineas)\n))" (leer-entrada))))
-    )
-  )
+(deftest fnc-evaluar-set-test
+  (testing "Test de evaluar una expresion set!"
+    (is (= (list (symbol "#<void>") '(x 1)) (evaluar-set! '(set! x 1) '(x 0))))
+    (is (= (list (generar-mensaje-error :unbound-variable 'x) '()) (evaluar-set! '(set! x 1) '())))
+    (is (= (list (generar-mensaje-error :missing-or-extra 'set! '(set! x)) '(x 0)) (evaluar-set! '(set! x) '(x 0))))
+    (is (= (list (generar-mensaje-error :missing-or-extra 'set! '(set! x 1 2)) '(x 0)) (evaluar-set! '(set! x 1 2) '(x 0))))
+    (is (= (list (generar-mensaje-error :bad-variable 'set! 1) '(x 0)) (evaluar-set! '(set! 1 2) '(x 0))))))
+

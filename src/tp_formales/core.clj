@@ -548,16 +548,21 @@
 
 
 ; FUNCIONES QUE DEBEN SER IMPLEMENTADAS PARA COMPLETAR EL INTERPRETE DE RACKET (ADEMAS DE COMPLETAR `EVALUAR` Y `APLICAR-FUNCION-PRIMITIVA`):
-(defn chequear_cadena [l operacion funcion & args]
+(defn chequear_cadena 
+  "Controla que los argumentos de la lista que recibe sean numeros. Si son todos numeros aplicar 'funcion' sino devuelve error.
+   Recibe una lista, la operacion que se quiere hacer, la funcion a aplicar y lo argumentos de esa funcion. "
+  [l operacion funcion & args]
   (cond
-    (empty? l) (apply funcion args)
+    (empty? l) (apply funcion args) ;Si ya recorrió toda la lista y ninguno no es un numero, aplica la funcion
     (not (number? (second (first l)))) (cond
                                          (= 1 (inc (first (first l)))) (generar-mensaje-error :wrong-type-arg1 operacion (second (first l)))
                                          :else (generar-mensaje-error :wrong-type-arg2 operacion (second (first l))))
     :else (apply chequear_cadena (rest l) operacion funcion args)))
 
 
-(defn as_map [ambiente]
+(defn as_map 
+  "Convierte un ambiente que es una lista en un mapa 'clave:valor'"
+  [ambiente]
   (into {} (map vec (partition 2 ambiente))))
 
 ; user=> (leer-entrada)
@@ -599,7 +604,10 @@
 ; -1
 ; user=> (verificar-parentesis "(hola '(mundo) )")
 ; 0
-(defn es_parentesis [l contador]
+(defn es_parentesis 
+  "Recibe una lista y un contador. 
+   Si el primer elemento de la lista es un ')' decrementa en 1 el contador, si es '(' incrementa en 1 y si el contador es -1 devuelve -1."
+  [l contador] 
   (cond
     (empty? l) contador
     (= -1 contador) -1
@@ -621,15 +629,20 @@
 ; (a 1 b 2 c 3)
 ; user=> (actualizar-amb () 'b 7)
 ; (b 7)
-(defn transponer [l1]
+(defn transponer 
+  "Transpone una lista"
+  [l1]
   (apply map list l1))
 
-(defn as_list [sm]
-  (reduce concat (transponer (list (keys sm) (vals sm)))))
+(defn as_list 
+  "Transforma un mapa en una lista"
+  [m]
+  (reduce concat (transponer (list (keys m) (vals m)))))
 
-(defn actualizar [ambiente clave valor]
+(defn actualizar 
+  "Actualiza el ambiente con la clave:valor dados."
+  [ambiente clave valor]
   (as_list (assoc (as_map ambiente) clave valor)))
-
 
 (defn actualizar-amb
   "Devuelve un ambiente actualizado con una clave (nombre de la variable o funcion) y su valor. 
@@ -643,7 +656,9 @@
 ; 3
 ; user=> (buscar 'f '(a 1 b 2 c 3 d 4 e 5))
 ; (;ERROR: unbound variable: f)
-(defn buscar_clave [mapa clave]
+(defn buscar_clave 
+  "Busca la clave dada en un mapa"
+  [mapa clave]
   (get mapa clave (generar-mensaje-error :unbound-variable clave)))
 
 (defn buscar
@@ -679,7 +694,9 @@
 ; user=> (restaurar-bool (read-string "(and (or %F %f %t %T) %T)") )
 ; (and (or #F #f #t #T) #T)
 
-(defn restaurar [elemento]
+(defn restaurar 
+  "Si el elemento es %t, %T, %f o %F lo cambia por #t, #T, #f o #F, en caso contrario devuelve el elemento"
+  [elemento]
   (cond
     (list? elemento) (map restaurar elemento)
     (= elemento (symbol "%t")) (symbol "#t")
@@ -701,13 +718,16 @@
 ; (;ERROR: append: Wrong type in arg 3)
 ; user=> (fnc-append '( (1 2) A (4 5) (6 7)))
 ; (;ERROR: append: Wrong type in arg A)
-(defn append [lista_n lista_v]
+(defn append 
+  "Concatena elemento a elemento de una lista, si el elemento no es una secuencia devuelve error"
+  [lista_n lista_v]
   (cond 
-    (seq? (first lista_v)) (append (concat lista_n (first lista_v)) (next lista_v)) 
+    (seq? (first lista_v)) (append (concat lista_n (first lista_v)) (rest lista_v)) 
     (empty? lista_v) lista_n
     :else (generar-mensaje-error :wrong-type-arg 'append (first lista_v))
     )
   )
+
 (defn fnc-append
   "Devuelve el resultado de fusionar listas."
   [lista] 
@@ -728,7 +748,9 @@
 ; #t
 ; user=> (fnc-equal? '((1 1) (2 1)))
 ; #f
-(defn equal [lista]
+(defn equal
+  "Compara dos elementos"
+  [lista]
   (cond
     (= (first lista) (second lista)) (symbol "#t")
     :else (symbol "#f")))
@@ -774,7 +796,9 @@
 ; (;ERROR: +: Wrong type in arg2 A)
 ; user=> (fnc-sumar '(3 4 A 6))
 ; (;ERROR: +: Wrong type in arg2 A)
-(defn sumar [l]
+(defn sumar 
+  "Suma los elementos de una lista"
+  [l]
   (reduce + l))
 
 (defn fnc-sumar
@@ -798,11 +822,13 @@
 ; (;ERROR: -: Wrong type in arg2 A)
 ; user=> (fnc-restar '(3 4 A 6))
 ; (;ERROR: -: Wrong type in arg2 A)
-(defn restar [l]
+(defn restar 
+  "Resta los elementos de una lista"
+  [l]
   (reduce - l))
 
 (defn fnc-restar
-  "Resta los elementos de un lista."
+  "Resta los elementos de una lista."
   [lista]
   (cond
     (empty? lista) (generar-mensaje-error :wrong-number-args '-)
@@ -830,12 +856,12 @@
 ; (;ERROR: <: Wrong type in arg2 A)
 ; user=> (fnc-menor '(1 2 A 4))
 ; (;ERROR: <: Wrong type in arg2 A)
-
-(defn menor [l es_menor]
+(defn menor 
+  "Devuelve #t si los numeros de una lista estan en orden estrictamente creciente; si no, #f."
+  [l es_menor]
   (cond
     (not es_menor) (symbol "#f")
-    (empty? l) (symbol "#t")
-    (= 1 (count l)) (symbol "#t")
+    (or (empty? l) (= 1 (count l))) (symbol "#t")
     :else (menor (rest l) (< (first l) (second l)))))
 
 (defn fnc-menor
@@ -863,11 +889,12 @@
 ; (;ERROR: >: Wrong type in arg2 A)
 ; user=> (fnc-mayor '(3 2 A 1))
 ; (;ERROR: >: Wrong type in arg2 A)
-(defn mayor [l es_mayor]
+(defn mayor 
+  "Devuelve #t si los numeros de una lista estan en orden estrictamente decreciente; si no, #f." 
+  [l es_mayor]
   (cond
     (not es_mayor) (symbol "#f")
-    (empty? l) (symbol "#t")
-    (= 1 (count l)) (symbol "#t")
+    (or (empty? l) (= 1 (count l))) (symbol "#t")
     :else (mayor (rest l) (> (first l) (second l)))))
 
 (defn fnc-mayor
@@ -895,15 +922,16 @@
 ; (;ERROR: >=: Wrong type in arg2 A)
 ; user=> (fnc-mayor-o-igual '(3 2 A 1))
 ; (;ERROR: >=: Wrong type in arg2 A)
-(defn mayor-o-igual [l es_mayor_o_igual]
+(defn mayor-o-igual 
+  "Devuelve #t si los numeros de una lista estan en orden decreciente; si no, #f."
+  [l es_mayor_o_igual]
   (cond
     (not es_mayor_o_igual) (symbol "#f")
-    (empty? l) (symbol "#t")
-    (= 1 (count l)) (symbol "#t")
+    (or (empty? l) (= 1 (count l))) (symbol "#t")
     :else (mayor-o-igual (rest l) (>= (first l) (second l)))))
 
 (defn fnc-mayor-o-igual
-  "Devuelve #t si los numeros de una lista estan en orden decreciente; si no, #f."
+  "Devuelve #t si los numeros de una lista estan en orden decreciente; si no, #f." 
   [lista]
   (chequear_cadena (map-indexed list lista) ">=" mayor-o-igual lista true))
 
@@ -940,26 +968,23 @@
 ; ((;ERROR: define: bad variable (define () 2)) (x 1))
 ; user=> (evaluar-define '(define 2 x) '(x 1))
 ; ((;ERROR: define: bad variable (define 2 x)) (x 1))
-
-(defn armar_lambda [clave valor]
+(defn armar_lambda 
+  "Arma la expresion lambda a guardar en el ambiente"
+  [clave valor] 
   (list (first clave) (concat (list 'lambda (rest clave)) valor)))
 
 (defn evaluar-define
   "Evalua una expresion `define`. Devuelve una lista con el resultado y un ambiente actualizado con la definicion."
-  [expre ambiente] 
+  [expre ambiente]
   (let [cantidad (count expre)]
     (cond
-      (<= cantidad 2) (list (generar-mensaje-error :missing-or-extra 'define expre) ambiente) ;(define) (define x) 
-      :else (cond
-              (symbol? (second expre)) (cond
-                                         (> cantidad 3) (list (generar-mensaje-error :missing-or-extra 'define expre) ambiente)
-                                         :else (list (symbol "#<void>") (actualizar-amb ambiente (second expre) (first (evaluar (last expre) ambiente)))))
-              (and (seq? (second expre)) (> (count (second expre)) 0)) (list (symbol "#<void>") (concat ambiente (armar_lambda (second expre) (rest (rest expre)))))
-              :else (list (generar-mensaje-error :bad-variable 'define expre) ambiente)
-              )
-      )
-))
-
+      (<= cantidad 2) (list (generar-mensaje-error :missing-or-extra 'define expre) ambiente) ;(define) (define x)  
+      (and (seq? (second expre)) (> (count (second expre)) 0)) (list (symbol "#<void>") (actualizar-amb ambiente (first (second expre)) (second (armar_lambda (second expre) (rest (rest expre)))))) ;expresion lambda 
+      (symbol? (second expre)) (cond
+                                 (> cantidad 3) (list (generar-mensaje-error :missing-or-extra 'define expre) ambiente) ;
+                                 :else (let [evaluado (evaluar (last expre) ambiente) clave (second expre)] (list (symbol "#<void>") (actualizar-amb ambiente clave (first evaluado)))))
+      :else (list (generar-mensaje-error :bad-variable 'define expre) ambiente))))
+      
 ; user=> (evaluar-if '(if 1 2) '(n 7))
 ; (2 (n 7))
 ; user=> (evaluar-if '(if 1 n) '(n 7))
@@ -976,7 +1001,9 @@
 ; ((;ERROR: if: missing or extra expression (if)) (n 7))
 ; user=> (evaluar-if '(if 1) '(n 7))
 ; ((;ERROR: if: missing or extra expression (if 1)) (n 7))
-(defn evaluar_false [expre ambiente] 
+(defn evaluar_false 
+  "Evalua el tercer elemento de una expresion 'if' porque el primero dio #f."  
+  [expre ambiente] 
   (cond
     (= 1 (count expre)) (list (symbol "#<void>") ambiente)
     :else 
@@ -990,19 +1017,20 @@
         ))
     ))
 
-(defn evaluar_true [segundo ambiente]
-  (let [evaluado (evaluar segundo ambiente)] 
-    
-   (cond
-    (and (not= (symbol "#<void>") (first evaluado)) (symbol? (first evaluado))) 
-     (cond
-       (error? (buscar (first evaluado) ambiente)) (list (first evaluado) ambiente)
-       :else (list (buscar (first evaluado) ambiente) ambiente)
-       )
-    :else evaluado
-     )))
+(defn evaluar_true 
+  "Evalua el segundo elemento de una expresion 'if' porque el primero dio distinto de #f." 
+  [segundo ambiente]
+  (let [evaluado (evaluar segundo ambiente)]
+    (cond
+      (and (not= (symbol "#<void>") (first evaluado)) (symbol? (first evaluado)))
+      (cond
+        (error? (buscar (first evaluado) ambiente)) (list (first evaluado) ambiente)
+        :else (list (buscar (first evaluado) ambiente) ambiente))
+      :else evaluado)))
 
-(defn aux-if [expre ambiente]
+(defn aux-if 
+  "Evalua el primer elemento de una expresion 'if'." 
+  [expre ambiente]
   (let [evaluado (first (evaluar (first expre) ambiente))] ;evaluo el primero
     (cond
       (not= evaluado (symbol "#f")) (evaluar_true (second expre) ambiente) ;si es true debo evaluar el segundo
@@ -1025,11 +1053,13 @@
 ; (5 (#f #f #t #t))
 ; user=> (evaluar-or (list 'or (symbol "#f")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
 ; (#f (#f #f #t #t))
-(defn aux_or [lista ambiente]
+(defn aux_or 
+  "Devuelve el primer elemento de la lista que no es #f"
+  [lista ambiente]
   (let [evaluado (evaluar (first lista) ambiente)]
     (cond
       (empty? lista) (list (symbol "#f") ambiente) ; Si llega aca es porque todo es falso
-       (not= (symbol "#f") (first evaluado)) evaluado
+       (not= (symbol "#f") (first evaluado)) evaluado ; Si el elemento evaluado no es #f lo devuelvo
       :else (aux_or (rest lista) ambiente))))
 
 (defn evaluar-or
@@ -1050,7 +1080,9 @@
 ; ((;ERROR: set!: missing or extra expression (set! x 1 2)) (x 0))
 ; user=> (evaluar-set! '(set! 1 2) '(x 0))
 ; ((;ERROR: set!: bad variable 1) (x 0))
-(defn aux_set! [expre ambiente]
+(defn aux_set! 
+  "Evalua el elemento de la expresion, si ya existia en el ambiente devuelve su valor, si no actualiza el ambiente"
+  [expre ambiente]
   (let [buscado (buscar (first expre) ambiente) evaluado (evaluar (second expre) ambiente)]
     (cond
       (error? buscado) (list buscado ambiente)
