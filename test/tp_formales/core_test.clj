@@ -35,7 +35,7 @@
 
 (deftest fnc-restar-test
   (testing "Test de resta de elementos"
-    (is (= ";ERROR: -: Wrong number of args given" (fnc-restar ())))
+    (is (= (generar-mensaje-error :wrong-number-args '- )(fnc-restar ())))
     (is (= -3 (fnc-restar '(3))))
     (is (= -1 (fnc-restar '(3 4))))
     (is (= -6 (fnc-restar '(3 4 5))))
@@ -90,14 +90,13 @@
 
 (deftest fnc-equal?-test
   (testing "Test de orden estrictamente decreciente de elementos"
-    (is (= (symbol "#t") (fnc-equal? ())))
-    (is (= (symbol "#t") (fnc-equal? '(A))))
-    (is (= (symbol "#t") (fnc-equal? '(A a))))
-    (is (= (symbol "#t") (fnc-equal? '(A a A))))
-    (is (= (symbol "#t") (fnc-equal? '(A a A a))))
-    (is (= (symbol "#f") (fnc-equal? '(A a A B))))
-    (is (= (symbol "#t") (fnc-equal? '(1 1 1 1))))
-    (is (= (symbol "#f") (fnc-equal? '(1 1 2 1))))
+    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? ())))
+    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? '(A))))
+    (is (= (symbol "#t") (fnc-equal? '(A A))))
+    (is (= (symbol "#f") (fnc-equal? '(A a))))
+    (is (= (generar-mensaje-error :wrong-number-args 'equal?) (fnc-equal? '(A A A))))
+    (is (= (symbol "#t") (fnc-equal? '((1 1) (1 1)))))
+    (is (= (symbol "#f") (fnc-equal? '((1 1) (2 1)))))
     ))
 
 (deftest fnc-append-test
@@ -195,9 +194,9 @@
 
 (deftest fnc-leer-entrada-test
   (testing "Lectura de entrada"
-    (is (= "Hola" (with-in-str "Hola" (leer-entrada)))) 
-    (is (= "123" (with-in-str "123" (leer-entrada))))
-    (is (= "(Hola mundo)" (with-in-str "(Hola\nmundo)" (leer-entrada)))) 
-    (is (= "( muchos( parentesis( en lineas) ))" (with-in-str "(\nmuchos(\nparentesis(\nen lineas)\n))" (leer-entrada))))
+    (is (= (read-string "Hola") (with-in-str "Hola" (leer-entrada)))) 
+    (is (= (read-string "123") (with-in-str "123" (leer-entrada))))
+    (is (= (read-string "(Hola mundo)") (with-in-str "(Hola\nmundo)" (leer-entrada)))) 
+    (is (= (read-string "( muchos( parentesis( en lineas) ))") (with-in-str "(\nmuchos(\nparentesis(\nen lineas)\n))" (leer-entrada))))
     )
   )
