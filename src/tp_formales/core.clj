@@ -583,14 +583,14 @@
   ([]
    (let [line (read-line) parentesis (verificar-parentesis line)]
      (cond
-       (= 0 parentesis) (read-string line)
+       (= 0 parentesis) line
        (> parentesis 0) (leer-entrada line)
        :else (do (println (generar-mensaje-error :warning-paren)) line)))) 
 
   ([line_anterior]
    (let [line (str line_anterior " " (read-line)) parentesis (verificar-parentesis line)]
      (cond
-       (= 0 parentesis) (read-string line)
+       (= 0 parentesis) line
        (> parentesis 0) (leer-entrada line)
        :else (do (println (generar-mensaje-error :warning-paren)) line)))))
 
@@ -776,7 +776,7 @@
   "Devuelve la lectura de un elemento de Racket desde la terminal/consola."
   [args]
   (cond
-    (empty? args) (leer-entrada)
+    (empty? args) (read-string (leer-entrada))
     (= 1 (count args)) (generar-mensaje-error :io-ports-not-implemented 'read)
     :else (generar-mensaje-error :wrong-number-args-prim-proc 'read)))
 
